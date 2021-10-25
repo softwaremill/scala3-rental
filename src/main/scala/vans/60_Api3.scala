@@ -1,14 +1,14 @@
 package vans
 
 import cats.effect.unsafe.IORuntime
-import cats.effect.{ExitCode, IO}
+import cats.effect.{ExitCode, IO, Resource}
 import cats.syntax.all.*
 import io.circe.generic.semiauto.*
 import io.circe.syntax.*
 import io.circe.{Decoder, Encoder, Json}
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
-import org.http4s.server.Router
+import org.http4s.server.{Router, Server}
 import sttp.model.StatusCode
 import sttp.client3.*
 import sttp.client3.httpclient.fs2.HttpClientFs2Backend
@@ -123,33 +123,37 @@ class Test60RentalEndpoints(logic: Test60Logic) {
   val all = List(rentTent, checkRental)
 }
 
+class Test60Routes(endpoints: Test60RentalEndpoints) {}
+
 @main def test60main() =
   import Test60.*
 
   implicit val runtime: IORuntime = IORuntime.global
 
   val clientResource = HttpClientFs2Backend.resource[IO]()
+  def routesWithDocs(endpoints: Test60RentalEndpoints): HttpRoutes[IO] =
+    val docs = OpenAPIDocsInterpreter()
+      .serverEndpointsToOpenAPI(endpoints.all, "Hello, World!", "1.0")
+      .toYaml
+
+    Http4sServerInterpreter[IO]().toRoutes(
+      endpoints.all ++ SwaggerUI[IO](docs)
+    )
+
+  def serverResource(routes: HttpRoutes[IO]): Resource[IO, Server] =
+    BlazeServerBuilder[IO](scala.concurrent.ExecutionContext.Implicits.global)
+      .bindHttp(8080, "localhost")
+      .withHttpApp(
+        Router("/" -> routes).orNotFound
+      )
+      .resource
 
   clientResource
     .flatMap { backend =>
       val logic = new Test60Logic(backend)
       val endpoints = new Test60RentalEndpoints(logic)
-
-      val docs = OpenAPIDocsInterpreter()
-        .serverEndpointsToOpenAPI(endpoints.all, "Hello, World!", "1.0")
-        .toYaml
-
-      val routes: HttpRoutes[IO] =
-        Http4sServerInterpreter[IO]().toRoutes(
-          endpoints.all ++ SwaggerUI[IO](docs)
-        )
-
-      BlazeServerBuilder[IO](scala.concurrent.ExecutionContext.Implicits.global)
-        .bindHttp(8080, "localhost")
-        .withHttpApp(
-          Router("/" -> routes).orNotFound
-        )
-        .resource
+      val routes = routesWithDocs(endpoints)
+      serverResource(routes)
     }
     .use(_ => IO.never)
     .as(ExitCode.Success)
