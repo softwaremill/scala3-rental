@@ -1,4 +1,4 @@
-package vans
+package rental.done
 
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}

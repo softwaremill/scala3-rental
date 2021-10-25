@@ -1,4 +1,4 @@
-package vans
+package rental.done
 
 import cats.effect.{ExitCode, IO}
 import cats.syntax.all.*
