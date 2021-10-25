@@ -8,7 +8,6 @@ import io.circe.syntax.*
 import io.circe.{Decoder, Encoder, Json}
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
-import org.http4s.implicits.*
 import org.http4s.server.Router
 import sttp.model.StatusCode
 import sttp.tapir.*

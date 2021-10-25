@@ -9,7 +9,6 @@ import io.circe.syntax.*
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
-import org.http4s.implicits.*
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.openapi.circe.yaml.*
